@@ -17,7 +17,8 @@ import java.util.*;
 @RestController
 @RequestMapping("/api/auth")
 // Ye line confirm karo (port 5173 tumhare Vite ka port hai)
-@CrossOrigin(origins = {"https://drive.rajnishsystems.in", "http://localhost:5173"}, allowCredentials = "true")public class AuthController {
+@CrossOrigin(origins = {"https://drive.rajnishsystems.in", "http://localhost:5173"}, allowCredentials = "true")
+public class AuthController {
 
     private final UserRepository userRepository;
     private final EmailService emailService;
