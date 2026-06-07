@@ -16,7 +16,8 @@ public class UserEntity {
 
     @Column(name="password")
     private String password;
-
+    private boolean isVerified = false;
+    private String otp;
     public UserEntity() {}
 
     public Long getId() {
@@ -29,6 +30,22 @@ public class UserEntity {
 
     public String getName() {
         return name;
+    }
+
+    public boolean isVerified() {
+        return isVerified;
+    }
+
+    public void setVerified(boolean verified) {
+        isVerified = verified;
+    }
+
+    public String getOtp() {
+        return otp;
+    }
+
+    public void setOtp(String otp) {
+        this.otp = otp;
     }
 
     public void setName(String name) {

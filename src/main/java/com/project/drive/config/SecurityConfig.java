@@ -85,12 +85,12 @@ public class SecurityConfig {
 
                             // 4. LIVE FRONTEND REDIRECT (Vercel URL)
                             // Agar local testing karni ho toh isko temporarily "http://localhost:5173" kar dena
-                            response.sendRedirect("https://drive.rajnishsystems.in");
+                            response.sendRedirect("http://localhost:8080");
                         })
                 )
                 .logout(logout -> logout
                         // LIVE FRONTEND LOGOUT REDIRECT
-                        .logoutSuccessUrl("https://drive.rajnishsystems.in")
+                        .logoutSuccessUrl("http://localhost:8080")
                         .deleteCookies("JSESSIONID")
                 );
         return http.build();
