@@ -34,7 +34,7 @@ public class SecurityConfig {
     private final UserRepository userRepository;
     private final ClientRegistrationRepository clientRegistrationRepository;
 
-    // DYNAMIC FRONTEND URL INJECTION (Defaults to localhost:5173 if not found)
+
     @Value("${app.base-url}")
     private String frontendUrl;
 
@@ -144,7 +144,7 @@ public class SecurityConfig {
         // DYNAMIC CORS ALLOWED ORIGIN (Strips trailing slash if present)
         String cleanFrontendUrl = frontendUrl.endsWith("/") ? frontendUrl.substring(0, frontendUrl.length() - 1) : frontendUrl;
 
-        // ✅ NAYA CHANGE: Sirf cleanFrontendUrl pass kiya hai
+
         configuration.setAllowedOrigins(List.of(cleanFrontendUrl));
 
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
