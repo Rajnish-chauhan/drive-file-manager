@@ -42,13 +42,15 @@ public class FileServiceStorage {
             StorageTracker newTracker = new StorageTracker();
             newTracker.setId(1L);
             newTracker.setTotalUsedBytes(0L);
-            newTracker.setMaxLimitBytes(2147483648L); // 2GB Limit
+            newTracker.setMaxLimitBytes(5368709120L); // 5GB Limit
             return storageTrackerRepository.save(newTracker);
         });
 
         if (tracker.getTotalUsedBytes() + incomingSize > tracker.getMaxLimitBytes()) {
-            throw new RuntimeException("2GB Global Storage Limit Exceeded!");
+            throw new RuntimeException("5GB Global Storage Limit Exceeded!");
         }
+
+
 
         // 2. Google Drive par File Upload
         File fileMetadata = new File();
@@ -80,6 +82,12 @@ public class FileServiceStorage {
 
         fileRepository.save(fileEntity);
         return "File uploaded to Google Drive successfully";
+    }
+
+    public void restoreFromTrash(Long id) {
+        FileEntity file = getFileById(id);
+        file.setDeleted(false);
+        fileRepository.save(file);
     }
 
     public FileEntity getFileById(Long id) {

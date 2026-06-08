@@ -14,15 +14,17 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class DriveConfig {
 
-
-    @Value("${GOOGLE_CLIENT_ID_REFRESH}")
+    @Value("${google.client.id}")
     private String clientId;
 
-    @Value("${GOOGLE_CLIENT_SECRET_REFRESH}")
+    @Value("${google.client.secret}")
     private String clientSecret;
 
-    @Value("${GOOGLE_REFRESH_TOKEN}")
+    @Value("${google.refresh.token}")
     private String refreshToken;
+
+    @Value("${google.drive.folder.id}")
+    private String folderId;
 
     private static final String APPLICATION_NAME = "DriveManagementSystem";
     private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
@@ -30,7 +32,6 @@ public class DriveConfig {
     @Bean
     public Drive googleDriveService() throws Exception {
         NetHttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
-
 
         Credential credential = new GoogleCredential.Builder()
                 .setTransport(httpTransport)

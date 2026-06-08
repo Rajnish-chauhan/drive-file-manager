@@ -4,6 +4,7 @@ import com.project.drive.entity.FileEntity;
 import com.project.drive.repo.FileRepository;
 import com.project.drive.service.FileServiceStorage;
 import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -12,10 +13,11 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/files")
-@CrossOrigin(origins = {"https://drive.rajnishsystems.in", "http://localhost:5173"}, allowCredentials = "true")
 public class FileController {
 
     private final FileServiceStorage fileServiceStorage;
@@ -26,17 +28,15 @@ public class FileController {
         this.fileRepository = fileRepository;
     }
 
-    // find user email
     private String getCurrentUserEmail() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated() || auth.getPrincipal().equals("anonymousUser")) {
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal().toString())) {
             throw new RuntimeException("Unauthorized Access");
         }
-        if (auth.getPrincipal() instanceof OAuth2User) {
-            OAuth2User oauthUser = (OAuth2User) auth.getPrincipal();
+        if (auth.getPrincipal() instanceof OAuth2User oauthUser) {
             return oauthUser.getAttribute("email");
         }
-        return auth.getName(); // Custom login user email
+        return auth.getName();
     }
 
     @PostMapping("/upload")
@@ -45,33 +45,27 @@ public class FileController {
             @RequestParam(value = "parentFolderId", required = false) Long parentFolderId) {
         try {
             String currentUserEmail = getCurrentUserEmail();
-            // send email from service
             return ResponseEntity.ok(fileServiceStorage.saveFile(file, parentFolderId, currentUserEmail));
         } catch (Exception e) {
-            // FIX 2:print issue if have?
             e.printStackTrace();
             return ResponseEntity.status(500).body("File upload failed! Reason: " + e.getMessage());
         }
     }
 
-
     @GetMapping("/download/{id}")
     public ResponseEntity<Resource> downloadFile(@PathVariable Long id) {
         try {
             FileEntity fileEntity = fileServiceStorage.getFileById(id);
-
-            // FIX: Hard-disk path Google Drive binary data find
             Resource resource = fileServiceStorage.downloadFileFromDrive(fileEntity.getDriveFileId());
 
             return ResponseEntity.ok()
-                    .header("Content-Disposition", "attachment; filename=\"" + fileEntity.getName() + "\"")
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileEntity.getName() + "\"")
                     .body(resource);
         } catch (Exception e) {
             return ResponseEntity.status(404).build();
         }
     }
 
-    //fetch those user which actually logedin
     @GetMapping("/home")
     public ResponseEntity<List<FileEntity>> getHomeFiles() {
         return ResponseEntity.ok(fileRepository.findByOwnerEmailAndIsDeletedFalse(getCurrentUserEmail()));
@@ -80,6 +74,19 @@ public class FileController {
     @GetMapping("/recents")
     public ResponseEntity<List<FileEntity>> getRecentFiles() {
         return ResponseEntity.ok(fileRepository.findByOwnerEmailAndIsDeletedFalseOrderByCreatedAtDesc(getCurrentUserEmail()));
+    }
+
+    // 🔴 Added the missing PUT endpoint for the React share button
+    @PutMapping("/share/{id}")
+    public ResponseEntity<?> markAsShared(@PathVariable Long id) {
+        Optional<FileEntity> fileOpt = fileRepository.findById(id);
+        if (fileOpt.isEmpty()) {
+            return ResponseEntity.status(404).body(Map.of("message", "File not found"));
+        }
+        FileEntity file = fileOpt.get();
+        file.setShared(true);
+        fileRepository.save(file);
+        return ResponseEntity.ok(Map.of("message", "File shared successfully"));
     }
 
     @GetMapping("/share")
@@ -103,6 +110,12 @@ public class FileController {
         return ResponseEntity.ok("Moved to trash");
     }
 
+    @PutMapping("/restore/{id}")
+    public ResponseEntity<String> restoreFromTrash(@PathVariable Long id) {
+        fileServiceStorage.restoreFromTrash(id);
+        return ResponseEntity.ok("File restored successfully");
+    }
+
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<String> deleteFile(@PathVariable Long id) {
         try {
@@ -112,40 +125,4 @@ public class FileController {
             return ResponseEntity.status(500).body("Failed");
         }
     }
-
-    // NAYA: Share link creation
-    @PutMapping("/generate-share-link/{id}")
-    public ResponseEntity<String> generateShareLink(@PathVariable Long id) {
-        return ResponseEntity.ok(fileServiceStorage.generateShareLink(id));
-    }
-
-    // NAYA: Public File Info
-    @GetMapping("/public/shared/{token}")
-    public ResponseEntity<FileEntity> getSharedFileInfo(@PathVariable String token) {
-        FileEntity file = fileServiceStorage.getFileByShareToken(token);
-        if (!file.isShared() || file.isDeleted()) {
-            return ResponseEntity.status(404).body(null);
-        }
-        return ResponseEntity.ok(file);
-    }
-
-    // NAYA: Publicly shared
-    @GetMapping("/public/download/shared/{token}")
-    public ResponseEntity<Resource> downloadSharedFile(@PathVariable String token) {
-        FileEntity fileEntity = fileServiceStorage.getFileByShareToken(token);
-        if (!fileEntity.isShared() || fileEntity.isDeleted()) {
-            return ResponseEntity.status(404).build();
-        }
-        try {
-            // FIX: shared file fetch from drive
-            Resource resource = fileServiceStorage.downloadFileFromDrive(fileEntity.getDriveFileId());
-
-            return ResponseEntity.ok()
-                    .header("Content-Disposition", "attachment; filename=\"" + fileEntity.getName() + "\"")
-                    .body(resource);
-        } catch (Exception e) {
-            return ResponseEntity.status(404).build();
-        }
-    }
-
 }

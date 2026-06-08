@@ -12,7 +12,8 @@ public class StorageTracker {
     private Long totalUsedBytes = 0L;
 
     @Column(nullable = false)
-    private Long maxLimitBytes = 2147483648L;
+    // Updated to 5GB
+    private Long maxLimitBytes = 5368709120L;
 
     // Getters and Setters
     public Long getId() { return id; }
