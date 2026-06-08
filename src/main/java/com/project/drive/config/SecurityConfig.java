@@ -35,7 +35,7 @@ public class SecurityConfig {
     private final ClientRegistrationRepository clientRegistrationRepository;
 
     // DYNAMIC FRONTEND URL INJECTION (Defaults to localhost:5173 if not found)
-    @Value("${APP_BASE_URL_TEST}")
+    @Value("${app.base-url}")
     private String frontendUrl;
 
     public SecurityConfig(UserRepository userRepository, ClientRegistrationRepository clientRegistrationRepository) {
