@@ -56,7 +56,7 @@ public class AuthController {
         try {
             emailService.sendVerificationEmail(user.getEmail(), otp);
         } catch (Exception e) {
-            // 🚨 SECURITY FIX: If email fails, delete the unverified user so they can try again later!
+            // SECURITY FIX: If email fails, delete the unverified user so they can try again later!
             userRepository.delete(user);
             System.out.println("Email Error: " + e.getMessage());
             return ResponseEntity.status(500).body(Map.of("message", "Error sending verification email. Please check your Mail App Password."));
@@ -80,7 +80,7 @@ public class AuthController {
             return ResponseEntity.badRequest().body(Map.of("message", "User is already verified!"));
         }
 
-        // 🔒 STRICT OTP MATCH: Must exactly match the DB value
+        // STRICT OTP MATCH: Must exactly match the DB value
         if (user.getOtp() != null && user.getOtp().equals(otp)) {
             user.setVerified(true); // Approve login
             user.setOtp(null);      // Destroy OTP after successful use
@@ -102,7 +102,7 @@ public class AuthController {
 
         UserEntity user = userOpt.get();
 
-        // 🛑 Guard against unverified logins
+        //Guard against unverified logins
         if (!user.isVerified()) {
             return ResponseEntity.status(403).body(Map.of("message", "Please verify your email before logging in!"));
         }

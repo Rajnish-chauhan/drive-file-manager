@@ -76,7 +76,7 @@ public class FileController {
         return ResponseEntity.ok(fileRepository.findByOwnerEmailAndIsDeletedFalseOrderByCreatedAtDesc(getCurrentUserEmail()));
     }
 
-    // 🔴 Added the missing PUT endpoint for the React share button
+    // PUT endpoint for the React share button
     @PutMapping("/share/{id}")
     public ResponseEntity<?> markAsShared(@PathVariable Long id) {
         Optional<FileEntity> fileOpt = fileRepository.findById(id);
