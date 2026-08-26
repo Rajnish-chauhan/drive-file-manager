@@ -166,4 +166,4 @@ The frontend will be available at http://localhost:5173
 
 I am a Backend Developer passionate about building scalable APIs and robust backend systems using Java and Spring Boot. Check out my other projects or get in touch!
 
-**🌐 Website & Portfolio:** [rajnishsystems.in](https://rajnishsystems.in)
+**🌐 Portfolio:** [rajnishsystems.in](https://rajnishsystems.in)
