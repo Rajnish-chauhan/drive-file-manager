@@ -63,47 +63,89 @@ Instead of local disk storage, `FileServiceStorage` connects to Google Drive. Th
 *   Basic frontend integration designed specifically to seamlessly display and interact with backend API data.
 ### Backend Structure
 ```text
-com.project.drive
-├── config
-│   ├── DriveConfig
-│   └── SecurityConfig
-├── controller
-│   ├── AuthController
-│   └── FileController
-├── entity
-│   ├── FileEntity
-│   ├── StorageTracker
-│   └── UserEntity
-├── repo
-│   ├── FileRepository
-│   ├── StorageTrackerRepository
-│   └── UserRepository
-├── service
-│   ├── EmailService
-│   └── FileServiceStorage
-└── DriveApplication
+Drive
+├── .idea
+├── .mvn
+├── images
+├── src
+│   ├── main
+│   │   ├── java
+│   │   │   └── com.project.drive
+│   │   │       ├── config
+│   │   │       │   ├── DriveConfig
+│   │   │       │   └── SecurityConfig
+│   │   │       ├── controller
+│   │   │       │   ├── AuthController
+│   │   │       │   └── FileController
+│   │   │       ├── dto
+│   │   │       │   ├── LoginRequest
+│   │   │       │   ├── RegisterRequest
+│   │   │       │   └── VerifyOtpRequest
+│   │   │       ├── entity
+│   │   │       │   ├── FileEntity
+│   │   │       │   ├── StorageTracker
+│   │   │       │   └── UserEntity
+│   │   │       ├── exception
+│   │   │       │   └── GlobalExceptionHandler
+│   │   │       ├── repo
+│   │   │       │   ├── FileRepository
+│   │   │       │   ├── StorageTrackerRepository
+│   │   │       │   └── UserRepository
+│   │   │       ├── service
+│   │   │       │   ├── AuthService
+│   │   │       │   ├── AuthServiceImpl
+│   │   │       │   ├── EmailService
+│   │   │       │   └── FileServiceStorage
+│   │   │       └── DriveApplication
+│   │   └── resources
+│   │       ├── static
+│   │       ├── templates
+│   │       ├── application.properties
+│   │       ├── application-prod.properties
+│   │       └── application-test.properties
+│   └── test
+├── target
+├── uploads
+├── .gitattributes
+├── .gitignore
+├── Dockerfile
+├── HELP.md
+├── mvnw
+├── mvnw.cmd
+├── pom.xml
+└── README.md
 ```
 
 ### Frontend Structure
 ```text
 drive_file_management
 ├── public
-└── src
-    ├── assets
-    ├── Components
-    │   ├── Filecard.css
-    │   ├── Filecard.jsx
-    │   ├── Footer.css
-    │   ├── Footer.jsx
-    │   ├── Sidebar.css
-    │   └── Sidebar.jsx
-    ├── App.css
-    ├── App.jsx
-    ├── DriveApp.css
-    ├── DriveApp.jsx
-    ├── index.css
-    ├── SimpleLoginPage.css
-    └── SimpleLoginPage.jsx
+├── src
+│   ├── api
+│   │   ├── authApi.jsx
+│   │   ├── axiosConfig.jsx
+│   │   └── fileApi.jsx
+│   ├── components
+│   │   ├── Filecard.css
+│   │   ├── FileCard.jsx
+│   │   ├── Footer.css
+│   │   ├── Footer.jsx
+│   │   ├── Header.css
+│   │   ├── Header.jsx
+│   │   ├── Sidebar.css
+│   │   └── Sidebar.jsx
+│   ├── hooks
+│   ├── App.css
+│   ├── DriveApp.css
+│   ├── DriveApp.jsx
+│   ├── index.css
+│   ├── jsconfig.jsx
+│   ├── main.jsx
+│   ├── SimpleLoginPage.css
+│   ├── SimpleLoginPage.jsx
+│   └── vite-env.d.ts
+├── .env.development
+└── .env.production
 ```
 
 ##  API Endpoints
