@@ -1,7 +1,6 @@
 package com.project.drive.controller;
 
 import com.project.drive.entity.FileEntity;
-import com.project.drive.repo.FileRepository;
 import com.project.drive.service.FileServiceStorage;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -14,18 +13,15 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/files")
 public class FileController {
 
     private final FileServiceStorage fileServiceStorage;
-    private final FileRepository fileRepository;
 
-    public FileController(FileServiceStorage fileServiceStorage, FileRepository fileRepository) {
+    public FileController(FileServiceStorage fileServiceStorage) {
         this.fileServiceStorage = fileServiceStorage;
-        this.fileRepository = fileRepository;
     }
 
     private String getCurrentUserEmail() {
@@ -44,10 +40,8 @@ public class FileController {
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "parentFolderId", required = false) Long parentFolderId) {
         try {
-            String currentUserEmail = getCurrentUserEmail();
-            return ResponseEntity.ok(fileServiceStorage.saveFile(file, parentFolderId, currentUserEmail));
+            return ResponseEntity.ok(fileServiceStorage.saveFile(file, parentFolderId, getCurrentUserEmail()));
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.status(500).body("File upload failed! Reason: " + e.getMessage());
         }
     }
@@ -68,35 +62,28 @@ public class FileController {
 
     @GetMapping("/home")
     public ResponseEntity<List<FileEntity>> getHomeFiles() {
-        return ResponseEntity.ok(fileRepository.findByOwnerEmailAndIsDeletedFalse(getCurrentUserEmail()));
+        return ResponseEntity.ok(fileServiceStorage.getHomeFiles(getCurrentUserEmail()));
     }
 
     @GetMapping("/recents")
     public ResponseEntity<List<FileEntity>> getRecentFiles() {
-        return ResponseEntity.ok(fileRepository.findByOwnerEmailAndIsDeletedFalseOrderByCreatedAtDesc(getCurrentUserEmail()));
+        return ResponseEntity.ok(fileServiceStorage.getRecentFiles(getCurrentUserEmail()));
     }
 
-    // PUT endpoint for the React share button
     @PutMapping("/share/{id}")
     public ResponseEntity<?> markAsShared(@PathVariable Long id) {
-        Optional<FileEntity> fileOpt = fileRepository.findById(id);
-        if (fileOpt.isEmpty()) {
-            return ResponseEntity.status(404).body(Map.of("message", "File not found"));
-        }
-        FileEntity file = fileOpt.get();
-        file.setShared(true);
-        fileRepository.save(file);
+        fileServiceStorage.markAsShared(id);
         return ResponseEntity.ok(Map.of("message", "File shared successfully"));
     }
 
     @GetMapping("/share")
     public ResponseEntity<List<FileEntity>> getSharedFiles() {
-        return ResponseEntity.ok(fileRepository.findByOwnerEmailAndIsSharedTrueAndIsDeletedFalse(getCurrentUserEmail()));
+        return ResponseEntity.ok(fileServiceStorage.getSharedFiles(getCurrentUserEmail()));
     }
 
     @GetMapping("/trash")
     public ResponseEntity<List<FileEntity>> getTrashFiles() {
-        return ResponseEntity.ok(fileRepository.findByOwnerEmailAndIsDeletedTrue(getCurrentUserEmail()));
+        return ResponseEntity.ok(fileServiceStorage.getTrashFiles(getCurrentUserEmail()));
     }
 
     @GetMapping("/storage")
@@ -105,24 +92,24 @@ public class FileController {
     }
 
     @PutMapping("/trash/{id}")
-    public ResponseEntity<String> moveToTrash(@PathVariable Long id) {
+    public ResponseEntity<?> moveToTrash(@PathVariable Long id) {
         fileServiceStorage.moveToTrash(id);
-        return ResponseEntity.ok("Moved to trash");
+        return ResponseEntity.ok(Map.of("message", "Moved to trash"));
     }
 
     @PutMapping("/restore/{id}")
-    public ResponseEntity<String> restoreFromTrash(@PathVariable Long id) {
+    public ResponseEntity<?> restoreFromTrash(@PathVariable Long id) {
         fileServiceStorage.restoreFromTrash(id);
-        return ResponseEntity.ok("File restored successfully");
+        return ResponseEntity.ok(Map.of("message", "File restored successfully"));
     }
 
     @DeleteMapping("/delete/{id}")
-    public ResponseEntity<String> deleteFile(@PathVariable Long id) {
+    public ResponseEntity<?> deleteFile(@PathVariable Long id) {
         try {
             fileServiceStorage.deletePermanent(id);
-            return ResponseEntity.ok("Deleted permanently");
+            return ResponseEntity.ok(Map.of("message", "Deleted permanently"));
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("Failed");
+            return ResponseEntity.status(500).body(Map.of("message", "Failed to delete file"));
         }
     }
 }

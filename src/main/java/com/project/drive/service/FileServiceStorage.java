@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -20,7 +21,7 @@ public class FileServiceStorage {
 
     private final FileRepository fileRepository;
     private final StorageTrackerRepository storageTrackerRepository;
-    private final Drive driveService; // NAYA: Google Drive Client
+    private final Drive driveService;
 
     @Value("${google.drive.folder.id}")
     private String sharedFolderId;
@@ -37,7 +38,6 @@ public class FileServiceStorage {
     public String saveFile(MultipartFile file, Long parentFolderId, String ownerEmail) throws Exception {
         long incomingSize = file.getSize();
 
-        // FIX 1: Agar Tracker entry not found then create it dont throw exception or error
         StorageTracker tracker = storageTrackerRepository.findById(1L).orElseGet(() -> {
             StorageTracker newTracker = new StorageTracker();
             newTracker.setId(1L);
@@ -50,9 +50,6 @@ public class FileServiceStorage {
             throw new RuntimeException("5GB Global Storage Limit Exceeded!");
         }
 
-
-
-        // 2. Google Drive par File Upload
         File fileMetadata = new File();
         fileMetadata.setName(file.getOriginalFilename());
         fileMetadata.setParents(Collections.singletonList(sharedFolderId));
@@ -60,20 +57,17 @@ public class FileServiceStorage {
         InputStreamContent mediaContent = new InputStreamContent(
                 file.getContentType(), file.getInputStream());
 
-        // File upload find id and url
         File uploadedDriveFile = driveService.files().create(fileMetadata, mediaContent)
                 .setFields("id, name, webContentLink")
                 .execute();
 
-        // 3. TiDB update tracker
         tracker.setTotalUsedBytes(tracker.getTotalUsedBytes() + incomingSize);
         storageTrackerRepository.save(tracker);
 
-        // 4. File details save in DB
         FileEntity fileEntity = new FileEntity();
         fileEntity.setName(uploadedDriveFile.getName());
-        fileEntity.setDriveFileId(uploadedDriveFile.getId()); // NAYA
-        fileEntity.setWebContentLink(uploadedDriveFile.getWebContentLink()); // NAYA
+        fileEntity.setDriveFileId(uploadedDriveFile.getId());
+        fileEntity.setWebContentLink(uploadedDriveFile.getWebContentLink());
         fileEntity.setSize(incomingSize);
         fileEntity.setType(file.getContentType());
         fileEntity.setParentFolderId(parentFolderId);
@@ -84,14 +78,38 @@ public class FileServiceStorage {
         return "File uploaded to Google Drive successfully";
     }
 
+    public FileEntity getFileById(Long id) {
+        return fileRepository.findById(id).orElseThrow(()->new RuntimeException("File not found"));
+    }
+
+
+    public List<FileEntity> getHomeFiles(String email) {
+        return fileRepository.findByOwnerEmailAndIsDeletedFalse(email);
+    }
+
+    public List<FileEntity> getRecentFiles(String email) {
+        return fileRepository.findByOwnerEmailAndIsDeletedFalseOrderByCreatedAtDesc(email);
+    }
+
+    public List<FileEntity> getSharedFiles(String email) {
+        return fileRepository.findByOwnerEmailAndIsSharedTrueAndIsDeletedFalse(email);
+    }
+
+    public List<FileEntity> getTrashFiles(String email) {
+        return fileRepository.findByOwnerEmailAndIsDeletedTrue(email);
+    }
+
+    public void markAsShared(Long id) {
+        FileEntity file = getFileById(id);
+        file.setShared(true);
+        fileRepository.save(file);
+    }
+
+
     public void restoreFromTrash(Long id) {
         FileEntity file = getFileById(id);
         file.setDeleted(false);
         fileRepository.save(file);
-    }
-
-    public FileEntity getFileById(Long id) {
-        return fileRepository.findById(id).orElseThrow(()->new RuntimeException("File not found"));
     }
 
     public String generateShareLink(Long id) {
@@ -118,23 +136,20 @@ public class FileServiceStorage {
     public void deletePermanent(Long id) throws Exception {
         FileEntity file = getFileById(id);
 
-        // 1. Google Drive se permanently udana
         if (file.getDriveFileId() != null) {
             try {
                 driveService.files().delete(file.getDriveFileId()).execute();
             } catch (Exception e) {
-                System.out.println("Google Drive se delete nahi ho payi.");
+                System.out.println("Unable to Delete from Google Drive");
             }
         }
 
-        // 2. Storage space back
         StorageTracker tracker = storageTrackerRepository.findById(1L).orElse(null);
         if (tracker != null) {
             tracker.setTotalUsedBytes(tracker.getTotalUsedBytes() - file.getSize());
             storageTrackerRepository.save(tracker);
         }
 
-        // 3. DB se delete
         fileRepository.deleteById(id);
     }
 
@@ -144,7 +159,6 @@ public class FileServiceStorage {
                 .orElse(0L);
     }
 
-    // Google Drive (fetch data and convert into stream)
     public org.springframework.core.io.Resource downloadFileFromDrive(String driveFileId) throws Exception {
         java.io.InputStream is = driveService.files().get(driveFileId).executeMediaAsInputStream();
         return new org.springframework.core.io.InputStreamResource(is);

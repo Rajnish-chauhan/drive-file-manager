@@ -1,33 +1,66 @@
 # Drive - A File Management System
 
+![Home Dashboard](images/Home.png)
+
 A comprehensive, full-stack file management application that provides secure cloud storage capabilities. This project integrates seamless drag-and-drop file uploads and robust authentication mechanisms, serving as an advanced iteration of file management using external cloud APIs rather than relying solely on local system storage.
 
-## Key Features
+---
 
-- **Advanced Authentication**: Secure login flow utilizing OAuth2 and standard credentials. Account creation includes OTP-based email verification, with passwords securely hashed using BCrypt. Role-based access control is implemented via Spring Security's FilterChain.
-- **Google Drive Integration**: Utilizes the Google Drive API for remote cloud storage. It implements a Refresh Token strategy to maintain persistent access without requiring constant user re-consent.
-- **Intuitive Uploads**: The frontend supports both modern drag-and-drop functionality and standard click-to-upload file selection.
-- **Custom File Operations**: Complete custom logic for managing files including uploading, downloading, sharing, moving to trash, restoring, and permanent deletion.
-- **Storage Management**: Tracks user storage limits and quotas explicitly defined in the application before interfacing with the Drive API.
+## Key Features & Showcase
+
+*   **Advanced Authentication**: Secure login flow utilizing OAuth2 and standard credentials. Account creation includes OTP-based email verification, with passwords securely hashed using BCrypt. Role-based access control is implemented via Spring Security's FilterChain.
+    ![Create Account](images/CreateAccount.png)
+    ![Standard Login](images/SignAccountCreatedUser.png)
+
+*   **Google Drive Integration**: Utilizes the Google Drive API for remote cloud storage. It implements a Refresh Token strategy to maintain persistent access without requiring constant user re-consent.
+    ![OAuth2 Login](images/LoginViaOauth2.png)
+
+*   **Intuitive Uploads**: The frontend supports both modern drag-and-drop functionality and standard click-to-upload file selection.
+    ![Drag and Drop Upload](images/UploadViaDrag&Drop.png)
+    ![File Uploaded Successfully](images/FileUploaded.png)
+
+*   **Custom File Operations**: Complete custom logic for managing files including uploading, downloading, sharing, moving to trash, restoring, and permanent deletion.
+    ![Share File](images/ShareFile.png)
+
+*   **Storage Management**: Tracks user storage limits and quotas explicitly defined in the application before interfacing with the Drive API.
+
+---
+
+## ⚙️ Detailed Working
+
+### 1. Authentication Flow & Security
+When a user registers, an OTP is generated and sent via `EmailService`.
+![OTP Email Received](images/Otp.png)
+![OTP Verification Window](images/otpfrontendwindow.png)
+![Email Verified Success](images/EmailVeified&accountCreated.png)
+
+Upon verification, the user's password is encrypted via BCrypt and saved to MySQL. Users can also log in seamlessly using OAuth2.
+![Database Encrypted Passwords](images/DBandPassEncrypted.png)
+
+### 2. Trash & File Management
+The application uses a Spring Security `FilterChain` to intercept requests and ensure that operations like `/delete/{id}` or `/storage` are only accessible to authorized roles. Users can safely restore files or permanently remove them from the cloud.
+![Restore File](images/RestoreFile.png)
+![Permanent Delete](images/ParmanentDelete.png)
+
+### 3. Storage & Drive API
+Instead of local disk storage, `FileServiceStorage` connects to Google Drive. The application uses a configured Refresh Token in `DriveConfig` to obtain temporary access tokens automatically. The `StorageTracker` entity ensures users do not exceed the custom storage limits defined in the database.
+
+---
 
 ## Tech Stack
 
 **Backend:**
-- Java 21
-- Spring Boot
-- Spring Security
-- Spring Data JPA
-- MySQL
-- Google Drive API (Storage)
-
+*   Java 21
+*   Spring Boot
+*   Spring Security
+*   Spring Data JPA
+*   MySQL
+*   Google Drive API (Storage)
 
 **Frontend:**
-- React 19+ (built with Vite)
-- CSS for styling components (Filecard, Sidebar, Footer, etc.)
-- Basic frontend integration designed specifically to seamlessly display and interact with backend API data.
-
-## 📂 Project Structure
-
+*   React 19+ (built with Vite)
+*   CSS for styling components (Filecard, Sidebar, Footer, etc.)
+*   Basic frontend integration designed specifically to seamlessly display and interact with backend API data.
 ### Backend Structure
 ```text
 com.project.drive

@@ -1,127 +1,48 @@
 package com.project.drive.controller;
 
+import com.project.drive.dto.LoginRequest;
+import com.project.drive.dto.RegisterRequest;
+import com.project.drive.dto.VerifyOtpRequest;
 import com.project.drive.entity.UserEntity;
 import com.project.drive.repo.UserRepository;
-import com.project.drive.service.EmailService;
+import com.project.drive.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.user.OAuth2User;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    private final UserRepository userRepository;
-    private final EmailService emailService;
-    private final PasswordEncoder passwordEncoder;
+    private final AuthService authService;
+    private final UserRepository userRepository; // Sirf /me endpoint ke liye chahiye
 
-    public AuthController(UserRepository userRepository, EmailService emailService, PasswordEncoder passwordEncoder) {
+    public AuthController(AuthService authService, UserRepository userRepository) {
+        this.authService = authService;
         this.userRepository = userRepository;
-        this.emailService = emailService;
-        this.passwordEncoder = passwordEncoder;
-    }
-
-    // 6-digit secure OTP generator
-    private String generateOTP() {
-        return String.format("%06d", new Random().nextInt(100000, 999999));
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody UserEntity user) {
-        // 1. Check if email already exists
-        if (userRepository.findByEmail(user.getEmail()).isPresent()) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Email already exists!"));
-        }
-
-        // 2. Prepare new user with unverified status and OTP
-        String otp = generateOTP();
-        user.setOtp(otp);
-        user.setVerified(false); // User cannot login yet
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-
-        // 3. Save user to DB to store the OTP
-        userRepository.save(user);
-
-        // 4. Try sending the OTP email
-        try {
-            emailService.sendVerificationEmail(user.getEmail(), otp);
-        } catch (Exception e) {
-            // SECURITY FIX: If email fails, delete the unverified user so they can try again later!
-            userRepository.delete(user);
-            System.out.println("Email Error: " + e.getMessage());
-            return ResponseEntity.status(500).body(Map.of("message", "Error sending verification email. Please check your Mail App Password."));
-        }
-
+    public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
+        authService.registerUser(request);
         return ResponseEntity.ok(Map.of("message", "Registration successful! Please verify OTP via your email."));
     }
 
     @PostMapping("/verify-otp")
-    public ResponseEntity<?> verifyOtp(@RequestBody Map<String, String> request) {
-        String email = request.get("email");
-        String otp = request.get("otp");
-
-        Optional<UserEntity> userOpt = userRepository.findByEmail(email);
-        if (userOpt.isEmpty()) {
-            return ResponseEntity.status(404).body(Map.of("message", "User not found!"));
-        }
-
-        UserEntity user = userOpt.get();
-        if (user.isVerified()) {
-            return ResponseEntity.badRequest().body(Map.of("message", "User is already verified!"));
-        }
-
-        // STRICT OTP MATCH: Must exactly match the DB value
-        if (user.getOtp() != null && user.getOtp().equals(otp)) {
-            user.setVerified(true); // Approve login
-            user.setOtp(null);      // Destroy OTP after successful use
-            userRepository.save(user);
-            return ResponseEntity.ok(Map.of("message", "Email verified successfully! You can now log in."));
-        }
-
-        // If OTP is wrong, block them
-        return ResponseEntity.status(401).body(Map.of("message", "Invalid OTP!"));
+    public ResponseEntity<?> verifyOtp(@RequestBody VerifyOtpRequest request) {
+        authService.verifyOtp(request);
+        return ResponseEntity.ok(Map.of("message", "Email verified successfully! You can now log in."));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody UserEntity loginData, HttpServletRequest request) {
-        Optional<UserEntity> userOpt = userRepository.findByEmail(loginData.getEmail());
-
-        if (userOpt.isEmpty()) {
-            return ResponseEntity.status(404).body(Map.of("message", "User does not exist. Please sign up first!"));
-        }
-
-        UserEntity user = userOpt.get();
-
-        //Guard against unverified logins
-        if (!user.isVerified()) {
-            return ResponseEntity.status(403).body(Map.of("message", "Please verify your email before logging in!"));
-        }
-
-        if (!passwordEncoder.matches(loginData.getPassword(), user.getPassword())) {
-            return ResponseEntity.status(401).body(Map.of("message", "Incorrect password!"));
-        }
-
-        // Establish session
-        UsernamePasswordAuthenticationToken authToken =
-                new UsernamePasswordAuthenticationToken(user.getEmail(), null, Collections.emptyList());
-
-        SecurityContext context = SecurityContextHolder.createEmptyContext();
-        context.setAuthentication(authToken);
-        SecurityContextHolder.setContext(context);
-
-        HttpSession session = request.getSession(true);
-        session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context);
-
+    public ResponseEntity<?> login(@RequestBody LoginRequest request, HttpServletRequest httpRequest) {
+        authService.loginUser(request, httpRequest);
         return ResponseEntity.ok(Map.of("message", "Login Successful"));
     }
 
